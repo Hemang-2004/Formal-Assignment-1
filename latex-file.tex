@@ -1,0 +1,614 @@
+% ============================================================
+%  Assignment 1 — Satisfiability & SAT Solvers
+%  Beautiful LaTeX Report
+% ============================================================
+\documentclass[11pt, a4paper]{article}
+
+% ── Core packages ────────────────────────────────────────────
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.8cm, right=2.8cm, headheight=15pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{verbatim}
+% ── Color scheme (matching the blue theme) ───────────────────
+\usepackage[dvipsnames, table]{xcolor}
+\definecolor{primaryblue}{RGB}{31, 73, 125}      % deep navy
+\definecolor{accentblue}{RGB}{46, 116, 181}      % medium blue
+\definecolor{lightblue}{RGB}{214, 234, 248}      % very light blue
+\definecolor{infobox}{RGB}{235, 243, 251}        % info box bg
+\definecolor{codebg}{RGB}{245, 245, 245}         % code background
+\definecolor{ruleblue}{RGB}{46, 116, 181}        % rule / line color
+\definecolor{darkgray}{RGB}{64, 64, 64}
+\definecolor{captioncolor}{RGB}{96, 96, 96}
+\definecolor{greenbox}{RGB}{226, 239, 218}
+\definecolor{greenborder}{RGB}{84, 130, 53}
+
+% ── Typography ────────────────────────────────────────────────
+\usepackage{titlesec}
+\usepackage{parskip}
+
+% Section styling
+\titleformat{\section}
+  {\Large\bfseries\color{primaryblue}}
+  {\thesection.}{0.6em}{}
+  [\vspace{-0.4em}{\color{ruleblue}\rule{\linewidth}{1.2pt}}\vspace{0.3em}]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{accentblue}}
+  {\thesubsection}{0.6em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{darkgray}}
+  {\thesubsubsection}{0.6em}{}
+
+\titlespacing*{\section}{0pt}{1.4em}{0.5em}
+\titlespacing*{\subsection}{0pt}{1em}{0.3em}
+
+% ── Headers & Footers ────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+% \fancyhead[L]{\small\color{accentblue}\textbf{Assignment 1} — Satisfiability \& SAT Solvers}
+% \fancyhead[R]{\small\color{accentblue}\thepage}
+% \fancyfoot[C]{\small\color{captioncolor}Submitted: 10 March 2026 \quad|\quad Seminar: 11 March 2026}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{ruleblue}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrulewidth}{0pt}
+
+% ── Math & Logic ─────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+
+% ── Algorithms ───────────────────────────────────────────────
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+% ── Code listings ────────────────────────────────────────────
+\usepackage{listings}
+\lstdefinestyle{pythonstyle}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize\color{black},
+  keywordstyle=\bfseries\color{primaryblue},
+  commentstyle=\itshape\color{captioncolor},
+  stringstyle=\color{accentblue},
+  numberstyle=\tiny\color{captioncolor},
+  numbers=left,
+  numbersep=8pt,
+  stepnumber=1,
+  breaklines=true,
+  frame=single,
+  framerule=0pt,
+  framexleftmargin=10pt,
+  xleftmargin=20pt,
+  showstringspaces=false,
+  tabsize=4,
+  language=Python,
+  morekeywords={Bool, And, Not, Solver, sat, True, False},
+  rulecolor=\color{ruleblue},
+  belowskip=0.5em,
+  aboveskip=0.5em,
+}
+\lstdefinestyle{inlinestyle}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  frame=none,
+  breaklines=true,
+  showstringspaces=false,
+}
+
+% ── Colored boxes ────────────────────────────────────────────
+\usepackage[most]{tcolorbox}
+
+\tcbset{
+  infostyle/.style={
+    colback=infobox,
+    colframe=accentblue,
+    boxrule=1pt,
+    arc=4pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fontupper=\small\color{primaryblue},
+  },
+  keystyle/.style={
+    colback=lightblue,
+    colframe=primaryblue,
+    boxrule=1.2pt,
+    arc=4pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fontupper=\small,
+  },
+  greenstyle/.style={
+    colback=greenbox,
+    colframe=greenborder,
+    boxrule=1pt,
+    arc=4pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fontupper=\small,
+  },
+  codebox/.style={
+    colback=codebg,
+    colframe=ruleblue!40,
+    boxrule=0.6pt,
+    arc=3pt,
+    left=6pt, right=6pt, top=4pt, bottom=4pt,
+    fontupper=\ttfamily\small,
+  },
+}
+
+% ── Tables ───────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+
+% ── Graphics & Figures ───────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{caption}
+\captionsetup{
+  font={small, it},
+  labelfont={bf, color=accentblue},
+  textfont={color=captioncolor},
+  labelsep=period,
+  skip=4pt,
+}
+
+% ── Hyperlinks ───────────────────────────────────────────────
+\usepackage[colorlinks=true, linkcolor=accentblue, urlcolor=accentblue, citecolor=accentblue]{hyperref}
+
+% ── Enumitem ─────────────────────────────────────────────────
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.4em, itemsep=2pt, topsep=4pt}
+\setlist[enumerate]{leftmargin=1.4em, itemsep=2pt, topsep=4pt}
+
+% ══════════════════════════════════════════════════════════════
+\begin{document}
+% ══════════════════════════════════════════════════════════════
+
+% ── Title Page ───────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+
+{\color{primaryblue}\rule{\linewidth}{2.5pt}}
+\vspace{0.6em}
+
+{\Huge\bfseries\color{primaryblue} Assignment 1}\\[0.4em]
+{\Large\color{accentblue} Satisfiability \& SAT Solvers}
+
+\vspace{0.5em}
+{\color{primaryblue}\rule{\linewidth}{2.5pt}}
+
+\vspace{1.5cm}
+
+\begin{tcolorbox}[keystyle, width=0.82\linewidth]
+\centering
+\textbf{Contents of this Report}\\[0.5em]
+\begin{itemize}
+\item \textbf{Exercise 1:} The DPLL Algorithm — CNF, Inference Rules, Pseudocode \& Worked Example\\[0.4em]
+\item \textbf{Exercise 2:} Z3 SMT Solver — Installation, Formula Analysis \& Python Implementation
+\end{itemize}
+\end{tcolorbox}
+
+\vspace{2cm}
+
+% \begin{tabular}{rl}
+% \textbf{\color{accentblue}Submission Deadline:} & 10 March 2026 \\[0.3em]
+% \textbf{\color{accentblue}Seminar Date:}         & 11 March 2026 \\[0.3em]
+% \textbf{\color{accentblue}Group Size:}           & Up to 3 students \\[0.3em]
+% \end{tabular}
+
+\vfill
+
+{\small\color{captioncolor}\itshape Formal Methods — Logic \& Verification}
+
+\end{titlepage}
+
+% ── Table of Contents ────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════
+\section{Propositional Logic \& Conjunctive Normal Form}
+% ══════════════════════════════════════════════════════════════
+
+Before understanding the DPLL algorithm, it is essential to grasp
+\emph{Conjunctive Normal Form} (CNF), the canonical representation on which
+DPLL operates.
+
+% ── 1.1 ──────────────────────────────────────────────────────
+\subsection{Propositional Formulas}
+
+A propositional formula is built from Boolean variables (e.g.\ $p, q, r$)
+and the logical connectives $\lnot$, $\land$, $\lor$, $\rightarrow$,
+$\leftrightarrow$.
+A \textbf{satisfying assignment} (or \emph{model}) is a mapping of variables
+to $\{\textit{True},\textit{False}\}$ that makes the formula evaluate to
+$\textit{True}$.
+
+% ── 1.2 ──────────────────────────────────────────────────────
+\subsection{Conjunctive Normal Form (CNF)}
+
+\begin{tcolorbox}[keystyle]
+A formula is in \textbf{CNF} if it is a \emph{conjunction} (\textbf{AND}) of
+\emph{clauses}, where every clause is a \emph{disjunction} (\textbf{OR}) of
+\emph{literals}.
+A \textbf{literal} is a variable $x$ or its negation $\lnot x$.
+\end{tcolorbox}
+
+\vspace{0.5em}
+Formally:
+\[
+  \underbrace{(l_{1,1} \lor \cdots \lor l_{1,k_1})}_{\text{clause }1}
+  \;\land\;
+  \underbrace{(l_{2,1} \lor \cdots \lor l_{2,k_2})}_{\text{clause }2}
+  \;\land\;\cdots\;\land\;
+  \underbrace{(l_{n,1} \lor \cdots \lor l_{n,k_n})}_{\text{clause }n}
+\]
+
+\textbf{Example CNF formula:}
+\[
+  (A \lor B)\;\land\;(\lnot A \lor C)\;\land\;(\lnot B \lor \lnot C)
+\]
+
+% ── 1.3 ──────────────────────────────────────────────────────
+\subsection{Converting Any Formula to CNF}
+
+Any propositional formula can be mechanically converted to CNF:
+
+\begin{itemize}
+  \item \textbf{Step 1 — Eliminate implications:}
+        $A \to B \;\equiv\; \lnot A \lor B$
+  \item \textbf{Step 2 — Push negations inward} (De Morgan's Laws):
+        $\lnot(A \land B) \equiv \lnot A \lor \lnot B$, \quad
+        $\lnot(A \lor B) \equiv \lnot A \land \lnot B$
+  \item \textbf{Step 3 — Eliminate double negations:}
+        $\lnot\lnot A \equiv A$
+  \item \textbf{Step 4 — Distribute $\lor$ over $\land$:}
+        $A \lor (B \land C) \equiv (A \lor B) \land (A \lor C)$
+\end{itemize}
+
+After these steps the formula is in CNF and ready for DPLL.
+
+% ══════════════════════════════════════════════════════════════
+\section{The DPLL Algorithm}
+% ══════════════════════════════════════════════════════════════
+
+The \textbf{Davis–Putnam–Logemann–Loveland (DPLL)} algorithm (1962) is a
+complete, backtracking-based procedure for deciding the satisfiability of
+CNF formulas.  It underpins virtually all modern SAT solvers.
+
+% ── 2.1 ──────────────────────────────────────────────────────
+\subsection{Core Inference Rules}
+
+DPLL applies three simplification strategies before any branching.
+
+% ─────────────────────────────────────────────────────────────
+\subsubsection{Unit Propagation}
+
+\begin{tcolorbox}[infostyle]
+\textbf{Rule:} If a clause contains exactly one literal $\ell$
+(a \emph{unit clause}), then $\ell$ must be assigned $\textit{True}$.
+All clauses containing $\ell$ are removed; $\lnot\ell$ is removed from every
+remaining clause.  Repeat until no unit clause exists.
+\end{tcolorbox}
+
+\textbf{Example:}
+\[
+  (p)\;\land\;(\lnot p \lor q)\;\land\;(\lnot q \lor r)
+  \xrightarrow{p=\top}
+  (q)\;\land\;(\lnot q \lor r)
+  \xrightarrow{q=\top}
+  (r)
+  \xrightarrow{r=\top}
+  \emptyset \;\Rightarrow\; \textbf{SAT}
+\]
+
+% ─────────────────────────────────────────────────────────────
+\subsubsection{Pure Literal Elimination}
+
+\begin{tcolorbox}[infostyle]
+\textbf{Rule:} A literal $\ell$ is \emph{pure} if $\lnot\ell$ never appears
+in the formula.  Assigning $\ell = \textit{True}$ satisfies every clause
+containing it without breaking any other clause.
+\end{tcolorbox}
+
+\textbf{Example:}
+$(A \lor B)\;\land\;(\lnot B \lor C)\;\land\;(A \lor \lnot C)$
+\;—\; $A$ is pure $\Rightarrow$ assign $A = \top$, remove clauses
+containing $A$; result: $(\lnot B \lor C)$.
+
+% ─────────────────────────────────────────────────────────────
+\subsubsection{Backtracking (Case Split)}
+
+\begin{tcolorbox}[infostyle]
+\textbf{Rule:} When neither UP nor PLE applies, choose an unassigned variable
+$x$ and recurse on two branches: $x = \top$ and $x = \bot$.
+If both branches fail, the formula is \textbf{UNSAT}.
+\end{tcolorbox}
+
+% ── 2.2 ──────────────────────────────────────────────────────
+\subsection{DPLL Pseudocode}
+\begin{algorithm}[H]
+\caption{DPLL($F$, $\alpha$) — Decide satisfiability of CNF formula $F$}
+\begin{algorithmic}[1]
+\Require CNF formula $F$, partial assignment $\alpha$
+\Ensure \textbf{SAT} with model, or \textbf{UNSAT}
+\Statex
+\Comment{--- Unit Propagation ---}
+\While{$\exists$ unit clause $(\ell)$ in $F$}
+  \State $F \gets \mathrm{simplify}(F, \ell)$
+  \State $\alpha \gets \alpha \cup \{\mathrm{var}(\ell) \mapsto \mathrm{pol}(\ell)\}$
+  \If{$\square \in F$}
+    \Return \textbf{UNSAT}
+  \EndIf
+\EndWhile
+\Statex
+\Comment{--- Pure Literal Elimination ---}
+\ForEach{pure literal $\ell$ in $F$}
+  \State $F \gets \mathrm{simplify}(F, \ell)$
+  \State $\alpha \gets \alpha \cup \{\mathrm{var}(\ell) \mapsto \mathrm{pol}(\ell)\}$
+\EndFor
+\Statex
+\Comment{--- Base Cases ---}
+\If{$F = \emptyset$}
+  \Return \textbf{SAT}, $\alpha$
+\EndIf
+\If{$\square \in F$}
+  \Return \textbf{UNSAT}
+\EndIf
+\Statex
+\Comment{--- Branching ---}
+\State $x \gets \mathrm{chooseVariable}(F)$
+\If{$\mathrm{DPLL}(\mathrm{simplify}(F,\, x),\; \alpha \cup \{x \mapsto \top\}) = \textbf{SAT}$}
+  \Return \textbf{SAT}
+\EndIf
+\If{$\mathrm{DPLL}(\mathrm{simplify}(F,\,\lnot x),\; \alpha \cup \{x \mapsto \bot\}) = \textbf{SAT}$}
+  \Return \textbf{SAT}
+\EndIf
+\Return \textbf{UNSAT}
+\end{algorithmic}
+\end{algorithm}
+% ── 2.3 ──────────────────────────────────────────────────────
+\subsection{Worked Example}
+
+We run DPLL on $\varphi = (A \lor B)\;\land\;(\lnot A \lor C)\;\land\;(\lnot B \lor \lnot C)$.
+
+\medskip
+\noindent\textbf{Initial state.}
+No unit clauses; no pure literals.
+Choose variable $A$.
+
+\medskip
+\noindent\textbf{Branch $A = \top$:}
+
+\[
+  \{A,B\},\;\{\lnot A, C\},\;\{\lnot B,\lnot C\}
+  \xrightarrow{A=\top}
+  \{C\},\;\{\lnot B,\lnot C\}
+  \xrightarrow{\text{UP: }C=\top}
+  \{\lnot B\}
+  \xrightarrow{\text{UP: }B=\bot}
+  \emptyset
+\]
+
+\begin{tcolorbox}[greenstyle]
+\textbf{SAT} \quad Model: $\;A = \top,\; C = \top,\; B = \bot$
+\end{tcolorbox}
+
+\noindent The second branch is never reached because the first already yields
+a model.
+
+% ── 2.4 ──────────────────────────────────────────────────────
+\subsection{Illustrations}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{fig1.png}
+\caption{DPLL search-tree execution source - Wikipedia.
+Each node represents a partial assignment; leaves marked \textbf{SAT}
+or \textbf{UNSAT} are terminal states reached after Unit Propagation.}
+\end{figure}
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.70\linewidth]{fig2.png}
+% \caption{DAG representation used by the linear solver approach.
+% Syntactically identical subformulas are shared as single nodes,
+% reducing redundancy.  The marking algorithm checks consistency locally
+% at each node, achieving $O(|V|+|E|)$ time complexity.}
+% \end{figure}
+
+% ── 2.5 ──────────────────────────────────────────────────────
+\subsection{Completeness \& Extension to CDCL}
+
+DPLL is \emph{complete}: it always terminates and correctly reports SAT or
+UNSAT.  Modern solvers extend DPLL with
+\textbf{Conflict-Driven Clause Learning (CDCL)}: when a contradiction is
+found, the conflict graph is analysed and a \emph{learned clause} is added to
+prune future search, yielding dramatic practical speed-ups.  Z3 uses a CDCL
+engine at its core.
+
+% ══════════════════════════════════════════════════════════════
+\section{Exercise 2 — Z3 SMT Solver}
+% ══════════════════════════════════════════════════════════════
+
+% ── 3.1 ──────────────────────────────────────────────────────
+\subsection{What is Z3?}
+
+Z3 is an open-source \textbf{Satisfiability Modulo Theories (SMT)} solver
+developed by Microsoft Research.
+It extends CDCL-based SAT solving with support for theories such as linear
+arithmetic, arrays, bit-vectors, and uninterpreted functions.
+For pure propositional logic, Z3 uses its CDCL engine directly.
+
+% ── 3.2 ──────────────────────────────────────────────────────
+\subsection{Installation}
+
+\begin{tcolorbox}[codebox]
+\$ pip install z3-solver 
+\end{tcolorbox}
+
+% ── 3.3 ──────────────────────────────────────────────────────
+\subsection{The Formula: $p \land \lnot\lnot(\lnot q \land \lnot\lnot p)$}
+
+We simplify the formula manually before coding it.
+
+\begin{align*}
+  &p \land \lnot\lnot(\lnot q \land \lnot\lnot p) \\
+  \equiv\;& p \land \lnot\lnot(\lnot q \land p)
+            &&\text{(eliminate }\lnot\lnot p\text{)}\\
+  \equiv\;& p \land (\lnot q \land p)
+            &&\text{(eliminate outer }\lnot\lnot\text{)}\\
+  \equiv\;& p \land \lnot q \land p
+            &&\text{(expand)}\\
+  \equiv\;& p \land \lnot q
+            &&\text{(idempotency: }p\land p \equiv p\text{)}
+\end{align*}
+
+\textbf{CNF:} $(p)\;\land\;(\lnot q)$
+
+\begin{tcolorbox}[keystyle]
+\textbf{Unique satisfying model:} $p = \textit{True},\quad q = \textit{False}$\\[0.3em]
+\textbf{Verification:}\;
+$\top \;\land\; \lnot\bot = \top \;\land\; \top = \top$ \checkmark
+\end{tcolorbox}
+
+% ── 3.4 ──────────────────────────────────────────────────────
+\subsection{Python Implementation}
+
+\begin{lstlisting}[style=pythonstyle]
+from z3 import Bool, And, Not, Solver, sat
+
+# Declare propositional variables
+p = Bool('p')
+q = Bool('q')
+
+# Build formula: p /\ ~~(~q /\ ~~p)
+formula = And(
+    p,
+    Not(Not(And(
+        Not(q),
+        Not(Not(p))
+    )))
+)
+
+# Create solver and check
+s = Solver()
+s.add(formula)
+result = s.check()
+
+if result == sat:
+    model = s.model()
+    print("Result : SAT")
+    print("Model  :", model)
+    for decl in model.decls():
+        print(f"  {decl.name()} = {model[decl]}")
+else:
+    print("Result : UNSAT")
+\end{lstlisting}
+
+% ── 3.5 ──────────────────────────────────────────────────────
+\subsection{Expected Output}
+
+\begin{tcolorbox}[codebox]
+Result : SAT\\
+Model  : [q = False, p = True]\\
+\phantom{Model  : }q = False\\
+\phantom{Model  : }p = True
+\end{tcolorbox}
+
+% ── 3.6 ──────────────────────────────────────────────────────
+\subsection{Manual Verification}
+
+Given $p = \top,\; q = \bot$:
+
+\medskip
+\begin{tabular}{@{}lll@{}}
+  \toprule
+  \textbf{Step} & \textbf{Sub-expression} & \textbf{Value} \\
+  \midrule
+  1 & $\lnot q$             & $\lnot\bot = \top$ \\
+  2 & $\lnot\lnot p$        & $\lnot\lnot\top = \top$ \\
+  3 & $\lnot q \land \lnot\lnot p$ & $\top \land \top = \top$ \\
+  4 & $\lnot\lnot(\cdots)$  & $\top$ \\
+  5 & $p \land \top$        & $\top \land \top = \top$ \checkmark \\
+  \bottomrule
+\end{tabular}
+
+% ── 3.7 ──────────────────────────────────────────────────────
+\subsection{Algorithm for DPLL-based Z3 Resolution}
+
+The following algorithm captures how Z3 internally resolves the given formula
+using its CDCL (DPLL-based) engine before applying theory reasoning.
+
+\begin{algorithm}[H]
+\caption{Z3 CDCL Resolution of $p \land \lnot\lnot(\lnot q \land \lnot\lnot p)$}
+\begin{algorithmic}[1]
+\Require Formula $\varphi = p \land \lnot\lnot(\lnot q \land \lnot\lnot p)$
+\Ensure SAT with model, or UNSAT
+\State $\varphi' \gets \mathrm{toCNF}(\varphi)$
+       \Comment{Apply double-neg elim \& simplification $\Rightarrow$ $(p)\land(\lnot q)$}
+\State $\alpha \gets \{\}$
+       \Comment{Empty assignment}
+\While{$\exists$ unit clause $(\ell)$ in $\varphi'$}
+  \State $\alpha \gets \alpha \cup \{\mathrm{var}(\ell) \mapsto \mathrm{pol}(\ell)\}$
+  \State $\varphi' \gets \mathrm{simplify}(\varphi', \ell)$
+\EndWhile
+\Comment{UP forces $p = \top$ from clause $(p)$, then $q = \bot$ from $(\lnot q)$}
+\If{$\varphi' = \emptyset$}
+  \Return \textbf{SAT}, $\alpha = \{p \mapsto \top,\; q \mapsto \bot\}$
+\EndIf
+\Return \textbf{UNSAT}
+\end{algorithmic}
+\end{algorithm}
+
+% ── 3.8 ──────────────────────────────────────────────────────
+\subsection{Comparison: Linear Solver vs.\ DPLL vs.\ Z3}
+
+\begin{table}[H]
+\centering
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{0.92\linewidth}{>{\bfseries}l X X X}
+\toprule
+\rowcolor{primaryblue}
+{\color{white}Approach} &
+{\color{white}Supports $\lor$?} &
+{\color{white}Complexity} &
+{\color{white}Backtracking?} \\
+\midrule
+Linear Solver & No (Horn / DAG only) & $O(|V|+|E|)$ & No \\
+\rowcolor{lightblue}
+DPLL & Yes (general CNF) & Exponential (worst) & Yes \\
+Z3 (CDCL+SMT) & Yes + theories & Exp.\ (CDCL pruning) & Yes + learning \\
+\bottomrule
+\end{tabularx}
+\caption{Summary of satisfiability approaches discussed in Assignment 1.}
+\end{table}
+
+% ══════════════════════════════════════════════════════════════
+\section{Conclusion}
+% ══════════════════════════════════════════════════════════════
+
+This report covered the theoretical foundations of propositional
+satisfiability and the DPLL algorithm. The key findings are:
+
+\begin{itemize}
+  \item CNF is the universal input format for DPLL and modern SAT solvers;
+        any propositional formula can be systematically converted to it.
+  \item DPLL uses Unit Propagation, Pure Literal Elimination, and systematic
+        backtracking to decide SAT/UNSAT completely and correctly.
+  \item The formula $p \land \lnot\lnot(\lnot q \land \lnot\lnot p)$
+        simplifies to $p \land \lnot q$ in CNF, satisfiable with
+        $p = \top,\; q = \bot$.
+  \item Z3 extends DPLL/CDCL to full SMT solving and confirmed the SAT result,
+        returning the correct model $[p = \textit{True},\; q = \textit{False}]$.
+\end{itemize}
+
+\begin{tcolorbox}[greenstyle]
+All the files are submitted as a zip file 
+\end{tcolorbox}
+
+\end{document}
