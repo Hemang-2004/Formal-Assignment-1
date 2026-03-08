@@ -70,7 +70,7 @@ def dpll(formula, assignment={}):
     if result:
         return True, model
 
-    # Try assigning False (backtrack)
+
     result, model = dpll(simplify(formula, -var), {**assignment, var: False})
     if result:
         return True, model
@@ -91,9 +91,7 @@ def print_formula(formula, var_map_inv):
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("  DPLL Algorithm - Satisfiability Checker")
-    print("=" * 60)
+    print("  DPLL Algorithm")
     print("\n[Example 1]")
     print("Formula: (A ∨ B) ∧ (¬A ∨ C) ∧ (¬B ∨ ¬C)")
     var_map_inv_1 = {1: "A", 2: "B", 3: "C"}
@@ -113,7 +111,7 @@ if __name__ == "__main__":
 
 
     print("\n[Example 2]")
-    print("Formula: (P) ∧ (¬P)  — should be UNSAT")
+    print("Formula: (P) ∧ (¬P)")
     var_map_inv_2 = {1: "P"}
     formula2 = [
         [1],    # P
@@ -139,6 +137,5 @@ if __name__ == "__main__":
     else:
         print("  Result : UNSAT")
 
-    print("\n" + "=" * 60)
     print("  DPLL Complete.")
-    print("=" * 60)
+

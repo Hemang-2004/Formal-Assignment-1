@@ -1,61 +1,86 @@
-import z3
-from z3 import Bool, And, Not, Solver, sat
+from z3 import *
+import re
+import sys
 
-print("=" * 60)
-print("  Exercise 2: Z3 Satisfiability Checker")
-print("  Formula: p ∧ ¬¬(¬q ∧ ¬¬p)")
-print("=" * 60)
+def parse_formula(expr, variables):
+    expr = expr.strip()
 
+    # Remove outer parentheses
+    while expr.startswith('(') and expr.endswith(')'):
+        depth = 0
+        balanced = True
+        for i, c in enumerate(expr):
+            if c == '(': depth += 1
+            elif c == ')': depth -= 1
+            if depth == 0 and i < len(expr) - 1:
+                balanced = False
+                break
+        if balanced:
+            expr = expr[1:-1].strip()
+        else:
+            break
 
-p = Bool('p')
-q = Bool('q')
+    # Handle ¬ (negation) at the start
+    if expr.startswith('¬') or expr.startswith('~'):
+        return Not(parse_formula(expr[1:].strip(), variables))
 
-print("\n Step -1 Variables declared: p, q")
+    for op_sym, op_fn in [('∨', Or), ('∧', And)]:
+        depth = 0
+        for i in range(len(expr) - 1, -1, -1):
+            if expr[i] == ')': depth += 1
+            elif expr[i] == '(': depth -= 1
+            elif depth == 0 and expr[i] == op_sym:
+                left  = expr[:i].strip()
+                right = expr[i+1:].strip()
+                return op_fn(parse_formula(left, variables),
+                             parse_formula(right, variables))
 
-
-formula = And(
-    p,
-    Not(Not(And(
-        Not(q),
-        Not(Not(p))
-    )))
-)
-
-print(f"\n Step -2 Formula constructed:")
-print(f"  {formula}")
-
-
-s = Solver()
-s.add(formula)
-
-print("\n Step -3 Formula added to Z3 Solver.")
-
-
-result = s.check()
-
-print("\n Step -4 Checking satisfiability...")
-print(f"\n  Result : {str(result).upper()}")
-
-if result == sat:
-    model = s.model()
-    print(f"  Model  : {model}")
-    print("\n  Interpretation:")
-    for decl in model.decls():
-        print(f"    {decl.name()} = {model[decl]}")
-else:
-    print("  The formula is UNSATISFIABLE.")
-    print("  No truth assignment can make the formula True.")
+    # It's a variable
+    name = expr.strip()
+    if name not in variables:
+        variables[name] = Bool(name)
+    return variables[name]
 
 
-print("\n Step -5 Manual Verification:")
-print("  p=True, q=False:")
-print("    p                    → True")
-print("    ¬q                   → ¬False = True")
-print("    ¬¬p                  → ¬¬True = True")
-print("    ¬q ∧ ¬¬p            → True ∧ True = True")
-print("    ¬¬(¬q ∧ ¬¬p)       → ¬¬True = True")
-print("    p ∧ ¬¬(¬q ∧ ¬¬p)  → True ∧ True = True  ✓")
+def extract_variables(expr):
+    return sorted(set(re.findall(r'\b[a-zA-Z_]\w*\b', expr)))
 
-print("\n" + "=" * 60)
-print("  Z3 Exercise Complete.")
-print("=" * 60)
+
+def main():
+    print("\nZ3 Satisfiability Checker")
+    print("-" * 40)
+    print("Supported operators:  ¬ or ~  (NOT),  ∧  (AND),  ∨  (OR)")
+    print("Example input:  p ∧ ¬¬(¬q ∧ ¬¬p)")
+    print("-" * 40)
+
+    raw = input("\nEnter formula: ").strip()
+    if not raw:
+        print("No formula entered.")
+        sys.exit(1)
+
+    variables = {}
+    try:
+        formula = parse_formula(raw, variables)
+    except Exception as e:
+        print(f"Could not parse formula: {e}")
+        sys.exit(1)
+
+    print(f"\nParsed formula : {formula}")
+    print(f"Variables found: {', '.join(sorted(variables.keys()))}")
+
+    s = Solver()
+    s.add(formula)
+    result = s.check()
+
+    print(f"\nResult : {str(result).upper()}")
+
+    if result == sat:
+        model = s.model()
+        print(f"Model  : {model}")
+    else:
+        print("No satisfying assignment exists.")
+
+    print()
+
+if __name__ == "__main__":
+    main()
