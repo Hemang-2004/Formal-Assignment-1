@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DPLL Algorithm — Visual Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #f6f8fa;
+    --surface: #ffffff;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --muted: #656d76;
+    --blue: #0969da;
+    --green: #1a7f37;
+    --yellow: #9a6700;
+    --orange: #bc4c00;
+    --red: #cf222e;
+    --purple: #6639ba;
+    --cyan: #0969a8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--blue);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 40px;
+    letter-spacing: 0.08em;
+  }
+
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 780px;
+  }
+
+  .phase {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    margin-bottom: 4px;
+  }
+
+  .phase-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 10px 8px;
+    border-radius: 6px 0 0 6px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .phase-body {
+    flex: 1;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    border: 1px solid transparent;
+    border-left: none;
+    background: var(--surface);
+  }
+
+  .phase-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    opacity: 0.85;
+  }
+
+  /* Phase color themes — light variants */
+  .phase-1 .phase-label { background: #ddf4ff; color: #0550ae; border: 1px solid #54aeff40; }
+  .phase-1 .phase-body  { background: #f0f8ff; border-color: #54aeff60; }
+  .phase-1 .phase-title { color: #0550ae; }
+
+  .phase-2 .phase-label { background: #dafbe1; color: #116329; border: 1px solid #2da44e40; }
+  .phase-2 .phase-body  { background: #f0fff4; border-color: #2da44e60; }
+  .phase-2 .phase-title { color: #116329; }
+
+  .phase-3 .phase-label { background: #fff8c5; color: #7d4e00; border: 1px solid #d4a72c40; }
+  .phase-3 .phase-body  { background: #fffdf0; border-color: #d4a72c60; }
+  .phase-3 .phase-title { color: #7d4e00; }
+
+  .phase-4 .phase-label { background: #ddf4ff; color: #0969da; border: 1px solid #0969da40; }
+  .phase-4 .phase-body  { background: #f0f8ff; border-color: #0969da50; }
+  .phase-4 .phase-title { color: #0969da; }
+
+  .phase-5 .phase-label { background: #fbefff; color: #6639ba; border: 1px solid #8250df40; }
+  .phase-5 .phase-body  { background: #fdf8ff; border-color: #8250df50; }
+  .phase-5 .phase-title { color: #6639ba; }
+
+  .code-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .code-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .line-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: #8c959f;
+    min-width: 18px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .code-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    flex: 1;
+    color: #1f2328;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  .tag-sat    { background: #dafbe1; color: #116329;  border: 1px solid #2da44e60; }
+  .tag-unsat  { background: #ffebe9; color: #cf222e;  border: 1px solid #ff818260; }
+  .tag-force  { background: #ddf4ff; color: #0550ae;  border: 1px solid #54aeff60; }
+  .tag-branch { background: #fbefff; color: #6639ba;  border: 1px solid #8250df60; }
+
+  .kw-if      { color: #6639ba; }
+  .kw-while   { color: #bc4c00; }
+  .kw-for     { color: #bc4c00; }
+  .kw-return  { color: #0969da; font-weight: 600; }
+  .kw-fn      { color: #9a6700; font-weight: 700; }
+  .sym        { color: #0969a8; }
+  .var        { color: #0550ae; }
+  .op         { color: #57606a; }
+  .comment    { color: #8c959f; font-style: italic; }
+
+  .fn-sig {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px 8px 0 0;
+    padding: 12px 18px;
+    width: 100%;
+    margin-bottom: 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 28px;
+    padding: 12px 20px;
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .phase { animation: fadeSlide 0.4s ease both; }
+  .phase-1 { animation-delay: 0.05s; }
+  .phase-2 { animation-delay: 0.15s; }
+  .phase-3 { animation-delay: 0.25s; }
+  .phase-4 { animation-delay: 0.35s; }
+  .phase-5 { animation-delay: 0.45s; }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .phase-body:hover {
+    filter: brightness(0.97);
+    transition: filter 0.2s;
+  }
+</style>
+</head>
+<body>
+
+<h1>DPLL Algorithm</h1>
+<p class="subtitle">Complete Unified Procedure — Visual Phase Diagram</p>
+
+<div class="diagram">
+
+  <div class="fn-sig">
+    <span class="code-text">
+      <span class="kw-fn">function</span>
+      <span class="var"> DPLL</span><span class="op">(</span><span class="var">F</span><span class="op">,</span> <span class="var">α</span><span class="op">):</span>
+    </span>
+  </div>
+
+  <div class="phase phase-1">
+    <div class="phase-label">Phase 1</div>
+    <div class="phase-body">
+      <div class="phase-title">⬡ Base Cases</div>
+      <div class="code-lines">
+        <div class="code-row">
+          <span class="line-num">1</span>
+          <span class="code-text"><span class="kw-if">if</span> <span class="var">F</span> <span class="sym">= ∅</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sym">→</span><span class="kw-return"> return</span> <span class="var">SAT</span><span class="op">, α</span></span>
+          <span class="tag tag-sat">SAT</span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">2</span>
+          <span class="code-text"><span class="kw-if">if</span> <span class="sym">{} ∈</span> <span class="var">F</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sym">→</span><span class="kw-return"> return</span> <span class="var">UNSAT</span></span>
+          <span class="tag tag-unsat">UNSAT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase phase-2">
+    <div class="phase-label">Phase 2</div>
+    <div class="phase-body">
+      <div class="phase-title">⟳ Unit Propagation</div>
+      <div class="code-lines">
+        <div class="code-row">
+          <span class="line-num">3</span>
+          <span class="code-text"><span class="kw-while">while</span> <span class="sym">∃</span> unit <span class="sym">(</span><span class="var">l</span><span class="sym">)</span> in <span class="var">F</span><span class="op">:</span></span>
+          <span class="tag tag-force">FORCED</span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">4</span>
+          <span class="code-text" style="padding-left:16px"><span class="var">α</span> <span class="sym">= α ∪ {</span>var<span class="sym">(</span><span class="var">l</span><span class="sym">) →</span> pol<span class="sym">(</span><span class="var">l</span><span class="sym">)}</span></span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">5</span>
+          <span class="code-text" style="padding-left:16px"><span class="var">F</span> <span class="sym">=</span> simplify<span class="sym">(</span><span class="var">F</span><span class="op">,</span> <span class="var">l</span><span class="sym">)</span></span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">6</span>
+          <span class="code-text" style="padding-left:16px"><span class="kw-if">if</span> <span class="sym">{} ∈</span> <span class="var">F</span> &nbsp;&nbsp;&nbsp;<span class="sym">→</span><span class="kw-return"> return</span> <span class="var">UNSAT</span></span>
+          <span class="tag tag-unsat">UNSAT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase phase-3">
+    <div class="phase-label">Phase 3</div>
+    <div class="phase-body">
+      <div class="phase-title">◈ Pure Literal Elimination</div>
+      <div class="code-lines">
+        <div class="code-row">
+          <span class="line-num">7</span>
+          <span class="code-text"><span class="kw-for">for each</span> pure <span class="var">l</span> in <span class="var">F</span><span class="op">:</span></span>
+          <span class="tag tag-force">FREE</span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">8</span>
+          <span class="code-text" style="padding-left:16px"><span class="var">α</span> <span class="sym">= α ∪ {</span>var<span class="sym">(</span><span class="var">l</span><span class="sym">) →</span> pol<span class="sym">(</span><span class="var">l</span><span class="sym">)}</span></span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">9</span>
+          <span class="code-text" style="padding-left:16px"><span class="var">F</span> <span class="sym">=</span> simplify<span class="sym">(</span><span class="var">F</span><span class="op">,</span> <span class="var">l</span><span class="sym">)</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase phase-4">
+    <div class="phase-label">Phase 4</div>
+    <div class="phase-body">
+      <div class="phase-title">⬡ Re-check Base Cases</div>
+      <div class="code-lines">
+        <div class="code-row">
+          <span class="line-num">10</span>
+          <span class="code-text"><span class="kw-if">if</span> <span class="var">F</span> <span class="sym">= ∅</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sym">→</span><span class="kw-return"> return</span> <span class="var">SAT</span><span class="op">, α</span></span>
+          <span class="tag tag-sat">SAT</span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">11</span>
+          <span class="code-text"><span class="kw-if">if</span> <span class="sym">{} ∈</span> <span class="var">F</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="sym">→</span><span class="kw-return"> return</span> <span class="var">UNSAT</span></span>
+          <span class="tag tag-unsat">UNSAT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase phase-5">
+    <div class="phase-label">Phase 5</div>
+    <div class="phase-body">
+      <div class="phase-title">⑂ Heuristic Branching</div>
+      <div class="code-lines">
+        <div class="code-row">
+          <span class="line-num">12</span>
+          <span class="code-text"><span class="var">x</span> <span class="sym">=</span> ChooseVar<span class="sym">(</span><span class="var">F</span><span class="sym">)</span> &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// MOM's heuristic</span></span>
+          <span class="tag tag-branch">PICK</span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">13</span>
+          <span class="code-text"><span class="kw-if">if</span> DPLL<span class="sym">(</span>simplify<span class="sym">(</span><span class="var">F</span><span class="op">,</span><span class="var"> x</span><span class="sym">)</span><span class="op">,</span>  <span class="var">α</span><span class="sym">∪{</span><span class="var">x</span><span class="sym">→T})</span> <span class="sym">=</span> SAT &nbsp;<span class="sym">→</span><span class="kw-return"> return</span> SAT</span>
+          <span class="tag tag-sat">x = T</span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">14</span>
+          <span class="code-text"><span class="kw-if">if</span> DPLL<span class="sym">(</span>simplify<span class="sym">(</span><span class="var">F</span><span class="op">,</span><span class="var"> ¬x</span><span class="sym">)</span><span class="op">,</span> <span class="var">α</span><span class="sym">∪{</span><span class="var">x</span><span class="sym">→F})</span> <span class="sym">=</span> SAT &nbsp;<span class="sym">→</span><span class="kw-return"> return</span> SAT</span>
+          <span class="tag tag-sat">x = F</span>
+        </div>
+        <div class="code-row">
+          <span class="line-num">15</span>
+          <span class="code-text"><span class="kw-return">return</span> <span class="var">UNSAT</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// both branches failed</span></span>
+          <span class="tag tag-unsat">UNSAT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#54aeff"></div> Base Cases</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2da44e"></div> Unit Propagation</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d4a72c"></div> Pure Literal Elim.</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0969da"></div> Re-check</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8250df"></div> Heuristic Branch</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2da44e"></div><span style="color:#116329;font-weight:700">SAT</span>&nbsp;terminal</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#cf222e"></div><span style="color:#cf222e;font-weight:700">UNSAT</span>&nbsp;terminal</div>
+</div>
+
+</body>
+</html>

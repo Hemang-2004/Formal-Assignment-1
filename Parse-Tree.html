@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Formula Parse Tree</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Lora:ital,wght@0,600;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #ffffff;
+    font-family: 'Lora', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 30px;
+  }
+
+  .formula-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #1f2328;
+    background: #f6f8fa;
+    border: 1.5px solid #d0d7de;
+    border-radius: 10px;
+    padding: 12px 28px;
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .formula-header .sym-and  { color: #0969da; }
+  .formula-header .sym-not  { color: #8250df; }
+  .formula-header .sym-var  { color: #116329; font-weight: 700; }
+
+  .label-top {
+    font-size: 0.72rem;
+    color: #8c959f;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    margin-bottom: 36px;
+    text-transform: uppercase;
+  }
+
+  /* ── Tree SVG wrapper ── */
+  .tree-wrap {
+    width: 100%;
+    max-width: 700px;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* ── Node styles ── */
+  .node-circle {
+    filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.10));
+  }
+
+  .node-and   { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.8; }
+  .node-not   { fill: #fbefff; stroke: #8250df; stroke-width: 1.8; }
+  .node-var-p { fill: #dafbe1; stroke: #2da44e; stroke-width: 1.8; }
+  .node-var-q { fill: #fff8c5; stroke: #d4a72c; stroke-width: 1.8; }
+
+  .node-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    dominant-baseline: central;
+    text-anchor: middle;
+  }
+
+  .text-and   { fill: #0550ae; }
+  .text-not   { fill: #6639ba; }
+  .text-var-p { fill: #116329; }
+  .text-var-q { fill: #7d4e00; }
+
+  .edge {
+    stroke: #d0d7de;
+    stroke-width: 1.8;
+    fill: none;
+  }
+
+  .edge-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    fill: #8c959f;
+    dominant-baseline: central;
+    text-anchor: middle;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 40px;
+    padding: 12px 24px;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #57606a;
+  }
+
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid;
+    flex-shrink: 0;
+  }
+
+  /* animations */
+  .node-g { animation: popIn 0.35s cubic-bezier(.34,1.56,.64,1) both; }
+  .n0  { animation-delay: 0.05s; }
+  .n1  { animation-delay: 0.15s; }
+  .n2  { animation-delay: 0.22s; }
+  .n3  { animation-delay: 0.30s; }
+  .n4  { animation-delay: 0.38s; }
+  .n5  { animation-delay: 0.46s; }
+  .n6  { animation-delay: 0.54s; }
+  .n7  { animation-delay: 0.62s; }
+  .n8  { animation-delay: 0.70s; }
+
+  .edge-g { animation: fadeIn 0.3s ease both; }
+  .e0 { animation-delay: 0.10s; }
+  .e1 { animation-delay: 0.18s; }
+  .e2 { animation-delay: 0.26s; }
+  .e3 { animation-delay: 0.34s; }
+  .e4 { animation-delay: 0.42s; }
+  .e5 { animation-delay: 0.50s; }
+  .e6 { animation-delay: 0.58s; }
+  .e7 { animation-delay: 0.66s; }
+
+  @keyframes popIn {
+    from { opacity:0; transform: scale(0.3); }
+    to   { opacity:1; transform: scale(1); }
+  }
+  @keyframes fadeIn {
+    from { opacity:0; }
+    to   { opacity:1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="formula-header">
+  <span class="sym-var">p</span>
+  <span class="sym-and"> ∧ </span>
+  <span class="sym-not">¬¬</span>(<span class="sym-not">¬</span><span class="sym-var">q</span>
+  <span class="sym-and"> ∧ </span>
+  <span class="sym-not">¬¬</span><span class="sym-var">p</span>)
+</div>
+<div class="label-top">Parse Tree — Z3 Expression Structure</div>
+
+<div class="tree-wrap">
+<!--
+  Node positions (cx, cy), radius = 26
+  Layout (7 levels):
+
+  Level 0:  And₁           (350, 60)
+  Level 1:  p₁ (160,160)   Not₁ (540,160)
+  Level 2:                  Not₂ (540,260)
+  Level 3:                  And₂ (540,360)
+  Level 4:  Not₃(370,460)   Not₄(710,460)
+  Level 5:  q   (370,560)   Not₅(710,560)
+  Level 6:                   p₂  (710,660)
+-->
+<svg viewBox="0 0 900 720" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- ── EDGES (drawn first, behind nodes) ── -->
+
+  <!-- And₁ → p₁ -->
+  <g class="edge-g e0">
+    <path class="edge" d="M 326,78 L 184,142"/>
+    <text class="edge-label" x="245" y="103">left</text>
+  </g>
+
+  <!-- And₁ → Not₁ -->
+  <g class="edge-g e1">
+    <path class="edge" d="M 374,78 L 516,142"/>
+    <text class="edge-label" x="455" y="103">right</text>
+  </g>
+
+  <!-- Not₁ → Not₂ -->
+  <g class="edge-g e2">
+    <path class="edge" d="M 540,186 L 540,234"/>
+  </g>
+
+  <!-- Not₂ → And₂ -->
+  <g class="edge-g e3">
+    <path class="edge" d="M 540,286 L 540,334"/>
+  </g>
+
+  <!-- And₂ → Not₃ -->
+  <g class="edge-g e4">
+    <path class="edge" d="M 516,378 L 394,442"/>
+    <text class="edge-label" x="446" y="403">left</text>
+  </g>
+
+  <!-- And₂ → Not₄ -->
+  <g class="edge-g e5">
+    <path class="edge" d="M 564,378 L 686,442"/>
+    <text class="edge-label" x="634" y="403">right</text>
+  </g>
+
+  <!-- Not₃ → q -->
+  <g class="edge-g e6">
+    <path class="edge" d="M 370,494 L 370,534"/>
+  </g>
+
+  <!-- Not₄ → Not₅ -->
+  <g class="edge-g e7">
+    <path class="edge" d="M 710,494 L 710,534"/>
+  </g>
+
+  <!-- Not₅ → p₂ -->
+  <g class="edge-g e8" style="animation-delay:0.74s">
+    <path class="edge" d="M 710,594 L 710,634"/>
+  </g>
+
+  <!-- ── NODES ── -->
+
+  <!-- And₁ — root -->
+  <g class="node-g n0" style="transform-origin:350px 60px">
+    <circle class="node-circle node-and" cx="350" cy="60" r="28"/>
+    <text class="node-text text-and" x="350" y="60">And</text>
+  </g>
+
+  <!-- p₁ — left child of And₁ -->
+  <g class="node-g n1" style="transform-origin:160px 160px">
+    <circle class="node-circle node-var-p" cx="160" cy="160" r="28"/>
+    <text class="node-text text-var-p" x="160" y="160">p</text>
+  </g>
+
+  <!-- Not₁ -->
+  <g class="node-g n2" style="transform-origin:540px 160px">
+    <circle class="node-circle node-not" cx="540" cy="160" r="28"/>
+    <text class="node-text text-not" x="540" y="160">Not</text>
+  </g>
+
+  <!-- Not₂ -->
+  <g class="node-g n3" style="transform-origin:540px 260px">
+    <circle class="node-circle node-not" cx="540" cy="260" r="28"/>
+    <text class="node-text text-not" x="540" y="260">Not</text>
+  </g>
+
+  <!-- And₂ -->
+  <g class="node-g n4" style="transform-origin:540px 360px">
+    <circle class="node-circle node-and" cx="540" cy="360" r="28"/>
+    <text class="node-text text-and" x="540" y="360">And</text>
+  </g>
+
+  <!-- Not₃ -->
+  <g class="node-g n5" style="transform-origin:370px 468px">
+    <circle class="node-circle node-not" cx="370" cy="468" r="28"/>
+    <text class="node-text text-not" x="370" y="468">Not</text>
+  </g>
+
+  <!-- Not₄ -->
+  <g class="node-g n6" style="transform-origin:710px 468px">
+    <circle class="node-circle node-not" cx="710" cy="468" r="28"/>
+    <text class="node-text text-not" x="710" y="468">Not</text>
+  </g>
+
+  <!-- q -->
+  <g class="node-g n7" style="transform-origin:370px 564px">
+    <circle class="node-circle node-var-q" cx="370" cy="564" r="28"/>
+    <text class="node-text text-var-q" x="370" y="564">q</text>
+  </g>
+
+  <!-- Not₅ -->
+  <g class="node-g n8" style="transform-origin:710px 564px">
+    <circle class="node-circle node-not" cx="710" cy="564" r="28"/>
+    <text class="node-text text-not" x="710" y="564">Not</text>
+  </g>
+
+  <!-- p₂ -->
+  <g class="node-g" style="transform-origin:710px 660px; animation: popIn 0.35s cubic-bezier(.34,1.56,.64,1) 0.78s both;">
+    <circle class="node-circle node-var-p" cx="710" cy="660" r="28"/>
+    <text class="node-text text-var-p" x="710" y="660">p</text>
+  </g>
+
+  <!-- Depth labels on the right -->
+  <text font-family="JetBrains Mono, monospace" font-size="10" fill="#c8d0d8" x="860" y="64"  text-anchor="middle">depth 0</text>
+  <text font-family="JetBrains Mono, monospace" font-size="10" fill="#c8d0d8" x="860" y="164" text-anchor="middle">depth 1</text>
+  <text font-family="JetBrains Mono, monospace" font-size="10" fill="#c8d0d8" x="860" y="264" text-anchor="middle">depth 2</text>
+  <text font-family="JetBrains Mono, monospace" font-size="10" fill="#c8d0d8" x="860" y="364" text-anchor="middle">depth 3</text>
+  <text font-family="JetBrains Mono, monospace" font-size="10" fill="#c8d0d8" x="860" y="472" text-anchor="middle">depth 4</text>
+  <text font-family="JetBrains Mono, monospace" font-size="10" fill="#c8d0d8" x="860" y="568" text-anchor="middle">depth 5</text>
+  <text font-family="JetBrains Mono, monospace" font-size="10" fill="#c8d0d8" x="860" y="664" text-anchor="middle">depth 6</text>
+
+</svg>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#ddf4ff; border-color:#54aeff;"></div>
+    And — conjunction
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#fbefff; border-color:#8250df;"></div>
+    Not — negation
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#dafbe1; border-color:#2da44e;"></div>
+    p — variable
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#fff8c5; border-color:#d4a72c;"></div>
+    q — variable
+  </div>
+</div>
+
+</body>
+</html>
