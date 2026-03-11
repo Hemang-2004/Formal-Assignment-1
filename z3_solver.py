@@ -35,7 +35,6 @@ def parse_formula(expr, variables):
                 return op_fn(parse_formula(left, variables),
                              parse_formula(right, variables))
 
-    # It's a variable
     name = expr.strip()
     if name not in variables:
         variables[name] = Bool(name)
@@ -84,3 +83,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#p ∧ ~p
+#(¬B ∨ C) ∧ (¬A ∨ C) ∧ (A ∨ B)
+#(¬A ∨ C) ∧ (A ∨ B) ∧ (¬B ∨ ¬C)
